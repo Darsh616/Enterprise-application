@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flask MySQL Example</title>
+</head>
+<body>
+    <h1>Database Data</h1>
+    <table border="1">
+        <tr>
+            <th>Config Name</th>
+            <th>Config Value</th>
+        </tr>
+        {% for row in data %}
+        <tr>
+            <td>{{ row[1] }}</td>
+            <td>{{ row[2] }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
+
