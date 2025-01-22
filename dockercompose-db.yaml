@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  flask-app:
+    image: flask.app
+    build: .
+    networks:
+      - mynetwork
+    ports:
+      - "5000:5000"
+    environment:
+      - RDS_HOST=darshan.cj4oqcie8m6x.ap-south-1.rds.amazonaws.com
+      - RDS_PORT=3306
+      - RDS_USER=admin
+      - RDS_PASSWORDLocal_1234567
+      - RDS_DB_NAME=darshan
+
+  mysql-db:
+    image: mysql:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: my-secret-pw
+      MYSQL_DATABASE: mydb
+    networks:
+      - mynetwork
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+networks:
+  mynetwork:
+    driver: bridge
+
+volumes:
+  mysql-data:
+    driver: local
+
