@@ -1,24 +1,29 @@
-from flask import Flask, render_template
+import os
+from flask import Flask, jsonify, render_template
 from flask_mysqldb import MySQL
 
 app = Flask(__name__)
 
-# MySQL Configuration
-app.config['MYSQL_HOST'] = 'darshan.cj4oqcie8m6x.ap-south-1.rds.amazonaws.com'
-app.config['MYSQL_USER'] = 'admin'  # Replace with your MySQL username
-app.config['MYSQL_PASSWORD'] = 'Local_1234567'  # Replace with your MySQL password
-app.config['MYSQL_DB'] = 'darshan'  # Replace with your database name
+# Configuration for MySQL 
+app.config['MYSQL_HOST'] = 'darshan.cj4oqcie8m6x.ap-south-1.rds.amazonaws.com'  # If it's a local IP address
+app.config['MYSQL_USER'] = 'admin'
+app.config['MYSQL_PASSWORD'] = 'Local_1234567'
+app.config['MYSQL_DB'] = 'darshan'
 
 mysql = MySQL(app)
 
 @app.route('/')
 def index():
-    cur = mysql.connection.cursor()
-    cur.execute("SELECT * FROM sys_config")  # Query the sys_config table
-    data = cur.fetchall()  # Fetch all data from the table
-    cur.close()
-    return render_template('index.html', data=data)
+    try:
+        # Get a cursor object from the connection
+        cur = mysql.connection.cursor()
+        cur.execute("SELECT * FROM sys_config")
+        data = cur.fetchall()
+
+        # Render the index.html page and pass the data
+        return render_template('index.html', data=data)
+    except Exception as e:
+        return str(e)
 
 if __name__ == '__main__':
     app.run(debug=True)
-
