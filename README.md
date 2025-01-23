@@ -1,206 +1,185 @@
-# Readme For Docker compose for multi container application
-# Docker Compose Setup for Flask Application and MySQL Database
+# Kubernetes Multi-Container Setup
 
-This guide will help you set up a multi-container environment using Docker and Docker Compose. The environment consists of a Flask application container and a MySQL database container.
+This repo sets up a Flask app and MySQL database on Kubernetes using GKE.
 
 ## Prerequisites
 
-1. **Docker**: Make sure Docker is installed on your machine.
-2. **Docker Compose**: Ensure that Docker Compose is installed as well.
-3. **SSH/Sudo Access**: You should have proper rights to use Docker and Docker Compose commands (e.g., be part of the `docker` group or use `sudo`).
+- **Google Cloud SDK** and **kubectl** installed.
+- A **GKE Cluster** created.
 
-### Step 1: Install Docker
+## Setup
 
-If you don’t have Docker installed, use the following commands based on your operating system.
-
-#### On Ubuntu:
-
+### 1. **Create a GKE Cluster**
 ```bash
-sudo apt update
-sudo apt install -y docker.io
-To verify the Docker installation:
+gcloud container clusters create <CLUSTER_NAME> --zone <ZONE> --num-nodes=3
+2. Configure kubectl
+bash
+Copy
+gcloud container clusters get-credentials <CLUSTER_NAME> --zone <ZONE> --project <PROJECT_ID>
+3. Deploy Resources
+Deploy Flask and MySQL services:
 
 bash
 Copy
-docker --version
-If you see the version, then Docker is installed correctly.
-
-On Windows:
-Download Docker from the official Docker website and follow the installation instructions.
-
-Step 2: Install Docker Compose
-On Ubuntu:
-bash
-Copy
-sudo apt-get install -y docker-compose
-On Windows:
-Docker Compose comes preinstalled with Docker Desktop.
-
-To verify Docker Compose installation:
+kubectl apply -f flask-app-deployment.yaml
+kubectl apply -f mysql-db-deployment.yaml
+4. Verify Deployment
+Check the status of deployments, pods, and services:
 
 bash
 Copy
-docker-compose --version
-Step 3: Prepare Your Project Directory
-Ensure your project directory contains the following:
+kubectl get deployments
+kubectl get pods
+kubectl get svc
+5. Access Flask App
+Get the external IP of the Flask service:
 
-Dockerfile – to build your Flask app container.
-docker-compose.yml – configuration for both the Flask app and MySQL database.
-Application Files – Flask app, requirements, templates, etc.
-Step 4: Create docker-compose.yml Configuration File
-Create a docker-compose.yml file with the following contents:
-
+bash
+Copy
+kubectl get svc flask-app-service
+File Structure
+flask-app-deployment.yaml: Flask app deployment and service.
+mysql-db-deployment.yaml: MySQL deployment, service, and persistent volume.
+Flask App Environment Variables
+RDS_HOST: MySQL RDS Host.
+RDS_PORT: MySQL Port (default: 3306).
+RDS_USER: MySQL username.
+RDS_PASSWORD: MySQL password.
+RDS_DB_NAME: MySQL database name.
 yaml
 Copy
-version: '3.8'
 
-services:
-  flask-app:
-    image: flask.app
-    build: .
-    networks:
-      - mynetwork
-    ports:
-      - "5000:5000"
-    environment:
-      - RDS_HOST=mysql-db
-      - RDS_PORT=3306
-      - RDS_USER=root
-      - RDS_PASSWORD=my-secret-pw
-      - RDS_DB_NAME=mydb
+---
 
-  mysql-db:
-    image: mysql:latest
-    environment:
-      MYSQL_ROOT_PASSWORD: my-secret-pw
-      MYSQL_DATABASE: mydb
-    networks:
-      - mynetwork
-    ports:
-      - "3306:3306"
-    volumes:
-      - mysql-data:/var/lib/mysql
+### `flask-app-deployment.yaml`
 
-networks:
-  mynetwork:
-    driver: bridge
-
-volumes:
-  mysql-data:
-    driver: local
-flask-app: This container runs your Flask application.
-mysql-db: This container runs a MySQL database.
-Network Configuration: Both containers will communicate via the custom network mynetwork.
-Step 5: Build Your Flask App Image
-Make sure that your Flask application has a Dockerfile for building the container. Here’s an example of a simple Dockerfile for Flask:
-
-Dockerfile
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flask-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flask-app
+  template:
+    metadata:
+      labels:
+        app: flask-app
+    spec:
+      containers:
+        - name: flask-app
+          image: darshan616/flask.app:latest
+          ports:
+            - containerPort: 5000
+          env:
+            - name: RDS_HOST
+              value: "darshan.cj4oqcie8m6x.ap-south-1.rds.amazonaws.com"
+            - name: RDS_PORT
+              value: "3306"
+            - name: RDS_USER
+              value: "admin"
+            - name: RDS_PASSWORD
+              value: "Local_1234567"
+            - name: RDS_DB_NAME
+              value: "darshan"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flask-app-service
+spec:
+  selector:
+    app: flask-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5000
+  type: LoadBalancer
+mysql-db-deployment.yaml
+yaml
 Copy
-# Use Python 3.9 as base image
-FROM python:3.9-slim
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql-db
+  template:
+    metadata:
+      labels:
+        app: mysql-db
+    spec:
+      containers:
+      - name: mysql-db
+        image: mysql:latest
+        ports:
+        - containerPort: 3306
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: "my-secret-pw"
+        - name: MYSQL_DATABASE
+          value: "mydb"
+        volumeMounts:
+        - name: mysql-data
+          mountPath: /var/lib/mysql
+      volumes:
+      - name: mysql-data
+        persistentVolumeClaim:
+          claimName: mysql-data
 
-# Set working directory
-WORKDIR /app
-
-# Install dependencies
-COPY requirements.txt /app/
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy app files to container
-COPY . /app/
-
-# Expose the Flask app port
-EXPOSE 5000
-
-# Command to run the Flask app
-CMD ["python", "app.py"]
-requirements.txt: This file should contain all the dependencies for your Flask app, such as:
-txt
-Copy
-Flask
-mysql-connector-python
-Step 6: Set Proper Docker Permissions
-If you’re running into permission issues with Docker, ensure that your user is part of the docker group to avoid needing sudo for Docker commands.
-
-To add your user to the docker group:
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-db-service
+spec:
+  ports:
+  - port: 3306
+    targetPort: 3306
+  selector:
+    app: mysql-db
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-data
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+Key Commands
+Create GKE Cluster:
 
 bash
 Copy
-sudo usermod -aG docker $USER
-After running this command, log out and log back in or restart your machine for the changes to take effect.
-Step 7: Build and Run Containers with Docker Compose
-Build the Containers:
-
-In the project directory (where the docker-compose.yml is located), run:
+gcloud container clusters create <CLUSTER_NAME> --zone <ZONE> --num-nodes=3
+Configure kubectl:
 
 bash
 Copy
-docker-compose up --build
-This will build both the Flask app and MySQL database containers and start them.
-
-Run Containers in Detached Mode (Optional):
-
-If you want to run containers in the background:
+gcloud container clusters get-credentials <CLUSTER_NAME> --zone <ZONE> --project <PROJECT_ID>
+Deploy App and Database:
 
 bash
 Copy
-docker-compose up -d --build
-Check the Logs:
-
-You can check the logs for both services using:
-
-bash
-Copy
-docker-compose logs flask-app
-docker-compose logs mysql-db
-Step 8: Access the Application
-Once the containers are up and running, you can access your Flask application by visiting:
+kubectl apply -f flask-app-deployment.yaml
+kubectl apply -f mysql-db-deployment.yaml
+Check Deployment Status:
 
 bash
 Copy
-http://localhost:5000
-Step 9: Stopping the Containers
-When you’re done with the containers, stop them with:
+kubectl get deployments
+kubectl get pods
+kubectl get svc
+Get External IP for Flask App:
 
 bash
 Copy
-docker-compose down
-This will stop and remove all running containers.
-
-Troubleshooting
-1. Permission Denied Error
-If you encounter a permission denied error when trying to run Docker commands, it usually means that your user does not have the necessary privileges to run Docker commands. You can fix this by adding your user to the Docker group (as described in Step 6).
-
-2. MySQL Database Connection Issues
-Make sure the environment variables (such as RDS_HOST, RDS_PORT, etc.) in your Flask app container are correctly set to match the MySQL container's details.
-
-For example:
-
-RDS_HOST should be set to mysql-db (the name of the MySQL container in the Docker Compose file).
-RDS_PORT should be 3306.
-If you’re using AWS RDS instead of the local MySQL container, adjust the connection details in your Flask app.
-
-3. Accessing MySQL from Flask
-Ensure your Flask app is correctly using the MySQL connection details to connect to the database. Here is an example of connecting from Flask to MySQL:
-
-python
-Copy
-import mysql.connector
-
-# Establish a connection to the MySQL database
-conn = mysql.connector.connect(
-    host="mysql-db",  # or your RDS endpoint
-    user="root",
-    password="my-secret-pw",
-    database="mydb"
-)
-
-cursor = conn.cursor()
-cursor.execute("SELECT * FROM your_table")
-Step 10: Clean Up
-To remove all containers, volumes, and networks used by Docker Compose, use:
-
-bash
-Copy
-docker-compose down -v
-This will clean up your environment.
+kubectl get svc flask-app-service
