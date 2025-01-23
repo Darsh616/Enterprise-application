@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: single-pod-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: single-pod-app
+  template:
+    metadata:
+      labels:
+        app: single-pod-app
+    spec:
+      containers:
+        - name: flask-container
+          image: darshan616/flask.app:latest # Replace with your Flask image
+          ports:
+            - containerPort: 5000
+          env:
+            - name: RDS_HOST
+              value: "localhost" # Since MySQL is in the same pod
+            - name: RDS_PORT
+              value: "3306"
+            - name: RDS_USER
+              value: "admin"
+            - name: RDS_PASSWORD
+              value: "Local_1234567"
+            - name: RDS_DB_NAME
+              value: "darshan"
+
+        - name: mysql-container
+          image: mysql:latest
+          ports:
+            - containerPort: 3306
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              value: "my-secret-pw"
+            - name: MYSQL_DATABASE
+              value: "darshan"
+
+
+
