@@ -157,29 +157,24 @@ spec:
 Key Commands
 Create GKE Cluster:
 
-bash
-Copy
+
 gcloud container clusters create <CLUSTER_NAME> --zone <ZONE> --num-nodes=3
+
 Configure kubectl:
 
-bash
-Copy
 gcloud container clusters get-credentials <CLUSTER_NAME> --zone <ZONE> --project <PROJECT_ID>
-Deploy App and Database:
 
-bash
-Copy
+# Deploy App and Database:
+
 kubectl apply -f flask-app-deployment.yaml
 kubectl apply -f mysql-db-deployment.yaml
-Check Deployment Status:
 
-bash
-Copy
+# Check Deployment Status:
+
 kubectl get deployments
 kubectl get pods
 kubectl get svc
-Get External IP for Flask App:
 
-bash
-Copy
+# Get External IP for Flask App:
+
 kubectl get svc flask-app-service
