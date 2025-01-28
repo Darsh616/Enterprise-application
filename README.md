@@ -19,23 +19,18 @@ gcloud container clusters get-credentials <CLUSTER_NAME> --zone <ZONE> --project
 3. Deploy Resources
 Deploy Flask and MySQL services:
 
-bash
-Copy
 kubectl apply -f flask-app-deployment.yaml
 kubectl apply -f mysql-db-deployment.yaml
 4. Verify Deployment
 Check the status of deployments, pods, and services:
 
-bash
-Copy
 kubectl get deployments
 kubectl get pods
 kubectl get svc
 5. Access Flask App
 Get the external IP of the Flask service:
 
-bash
-Copy
+
 kubectl get svc flask-app-service
 File Structure
 flask-app-deployment.yaml: Flask app deployment and service.
@@ -47,7 +42,6 @@ RDS_USER: MySQL username.
 RDS_PASSWORD: MySQL password.
 RDS_DB_NAME: MySQL database name.
 yaml
-Copy
 
 ---
 
